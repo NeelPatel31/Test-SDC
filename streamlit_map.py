@@ -4,7 +4,7 @@ import streamlit as st
 import time
 import matplotlib.animation as animation
 
-# from ai import Dqn  # Make sure to include your Dqn class from ai.py
+from ai import Dqn  # Make sure to include your Dqn class from ai.py
 
 # Initialize variables
 last_x = 0
