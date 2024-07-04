@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 import time
+import matplotlib.animation as animation
 
-from ai import Dqn  # Make sure to include your Dqn class from ai.py
+# from ai import Dqn  # Make sure to include your Dqn class from ai.py
 
 # Initialize variables
 last_x = 0
@@ -77,9 +78,65 @@ class Car:
 
 car = Car()
 
+fig, ax = plt.subplots()
+
 # Define Streamlit UI components
-def draw_map():
-    fig, ax = plt.subplots()
+def init_animation():
+    car_circle = plt.Circle((car.pos[0], car.pos[1]), 10, color='blue')
+    sensor1_circle = plt.Circle((car.sensor1[0], car.sensor1[1]), 5, color='red')
+    sensor2_circle = plt.Circle((car.sensor2[0], car.sensor2[1]), 5, color='green')
+    sensor3_circle = plt.Circle((car.sensor3[0], car.sensor3[1]), 5, color='yellow')
+    ax.add_artist(car_circle)
+    ax.add_artist(sensor1_circle)
+    ax.add_artist(sensor2_circle)
+    ax.add_artist(sensor3_circle)
+    return car_circle, sensor1_circle, sensor2_circle, sensor3_circle
+
+def update_animation(frame):
+    global brain, last_reward, scores, last_distance, goal_x, goal_y, longueur, largeur
+
+    if first_update:
+        init()
+
+    xx = goal_x - car.pos[0]
+    yy = goal_y - car.pos[1]
+    orientation = angle_between(car.velocity, vector(xx, yy)) / 180.
+    last_signal = [car.signal1, car.signal2, car.signal3, orientation, -orientation]
+    action = brain.update(last_reward, last_signal)
+    scores.append(brain.score())
+    rotation = action2rotation[action]
+    car.move(rotation)
+    distance = np.sqrt((car.pos[0] - goal_x) ** 2 + (car.pos[1] - goal_y) ** 2)
+
+    if sand[int(car.pos[0]), int(car.pos[1])] > 0:
+        car.velocity = rotate(vector(1, 0), car.angle)
+        last_reward = -1
+    else:
+        car.velocity = rotate(vector(6, 0), car.angle)
+        last_reward = -0.2
+        if distance < last_distance:
+            last_reward = 0.1
+
+    if car.pos[0] < 10:
+        car.pos[0] = 10
+        last_reward = -1
+    if car.pos[0] > longueur - 10:
+        car.pos[0] = longueur - 10
+        last_reward = -1
+    if car.pos[1] < 10:
+        car.pos[1] = 10
+        last_reward = -1
+    if car.pos[1] > largeur - 10:
+        car.pos[1] = largeur - 10
+        last_reward = -1
+
+    if distance < 100:
+        goal_x = longueur - goal_x
+        goal_y = largeur - goal_y
+
+    last_distance = distance
+
+    ax.clear()
     ax.imshow(sand.T, cmap='gray')
     car_circle = plt.Circle((car.pos[0], car.pos[1]), 10, color='blue')
     sensor1_circle = plt.Circle((car.sensor1[0], car.sensor1[1]), 5, color='red')
@@ -92,7 +149,7 @@ def draw_map():
     plt.xlim(0, sand.shape[0])
     plt.ylim(0, sand.shape[1])
     plt.gca().invert_yaxis()
-    st.pyplot(fig)
+    return car_circle, sensor1_circle, sensor2_circle, sensor3_circle
 
 # Main Streamlit loop
 st.title("Self-Driving Car Simulation")
@@ -105,49 +162,8 @@ if st.button("Initialize"):
     init()
 
 if st.button("Run Simulation"):
-    while True:
-        if first_update:
-            init()
-
-        xx = goal_x - car.pos[0]
-        yy = goal_y - car.pos[1]
-        orientation = angle_between(car.velocity, vector(xx, yy)) / 180.
-        last_signal = [car.signal1, car.signal2, car.signal3, orientation, -orientation]
-        action = brain.update(last_reward, last_signal)
-        scores.append(brain.score())
-        rotation = action2rotation[action]
-        car.move(rotation)
-        distance = np.sqrt((car.pos[0] - goal_x) ** 2 + (car.pos[1] - goal_y) ** 2)
-
-        if sand[int(car.pos[0]), int(car.pos[1])] > 0:
-            car.velocity = rotate(vector(1, 0), car.angle)
-            last_reward = -1
-        else:
-            car.velocity = rotate(vector(6, 0), car.angle)
-            last_reward = -0.2
-            if distance < last_distance:
-                last_reward = 0.1
-
-        if car.pos[0] < 10:
-            car.pos[0] = 10
-            last_reward = -1
-        if car.pos[0] > longueur - 10:
-            car.pos[0] = longueur - 10
-            last_reward = -1
-        if car.pos[1] < 10:
-            car.pos[1] = 10
-            last_reward = -1
-        if car.pos[1] > largeur - 10:
-            car.pos[1] = largeur - 10
-            last_reward = -1
-
-        if distance < 100:
-            goal_x = longueur - goal_x
-            goal_y = largeur - goal_y
-
-        last_distance = distance
-        draw_map()
-        time.sleep(0.1)
+    ani = animation.FuncAnimation(fig, update_animation, init_func=init_animation, frames=200, interval=50, blit=True)
+    st.pyplot(fig)
 
 if st.button("Clear Map"):
     sand = np.zeros((longueur, largeur))
