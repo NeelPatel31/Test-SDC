@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 import time
-import matplotlib.animation as animation
 
 from ai import Dqn  # Make sure to include your Dqn class from ai.py
 
@@ -81,18 +80,7 @@ car = Car()
 fig, ax = plt.subplots()
 
 # Define Streamlit UI components
-def init_animation():
-    car_circle = plt.Circle((car.pos[0], car.pos[1]), 10, color='blue')
-    sensor1_circle = plt.Circle((car.sensor1[0], car.sensor1[1]), 5, color='red')
-    sensor2_circle = plt.Circle((car.sensor2[0], car.sensor2[1]), 5, color='green')
-    sensor3_circle = plt.Circle((car.sensor3[0], car.sensor3[1]), 5, color='yellow')
-    ax.add_artist(car_circle)
-    ax.add_artist(sensor1_circle)
-    ax.add_artist(sensor2_circle)
-    ax.add_artist(sensor3_circle)
-    return car_circle, sensor1_circle, sensor2_circle, sensor3_circle
-
-def update_animation(frame):
+def plot_simulation():
     global brain, last_reward, scores, last_distance, goal_x, goal_y, longueur, largeur
 
     if first_update:
@@ -149,7 +137,7 @@ def update_animation(frame):
     plt.xlim(0, sand.shape[0])
     plt.ylim(0, sand.shape[1])
     plt.gca().invert_yaxis()
-    return car_circle, sensor1_circle, sensor2_circle, sensor3_circle
+    st.pyplot(fig)
 
 # Main Streamlit loop
 st.title("Self-Driving Car Simulation")
@@ -162,8 +150,9 @@ if st.button("Initialize"):
     init()
 
 if st.button("Run Simulation"):
-    ani = animation.FuncAnimation(fig, update_animation, init_func=init_animation, frames=200, interval=50, blit=True)
-    st.pyplot(fig)
+    for _ in range(200):
+        plot_simulation()
+        time.sleep(0.1)
 
 if st.button("Clear Map"):
     sand = np.zeros((longueur, largeur))
