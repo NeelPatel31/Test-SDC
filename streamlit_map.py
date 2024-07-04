@@ -1,5 +1,4 @@
 import numpy as np
-from random import randint
 import matplotlib.pyplot as plt
 import streamlit as st
 import time
@@ -98,9 +97,11 @@ def draw_map():
 # Main Streamlit loop
 st.title("Self-Driving Car Simulation")
 
+# Initialize map size
+longueur = st.slider("Map width", 100, 800, 400)
+largeur = st.slider("Map height", 100, 800, 400)
+
 if st.button("Initialize"):
-    longueur = 400
-    largeur = 400
     init()
 
 if st.button("Run Simulation"):
